@@ -1,0 +1,32 @@
+bundle:
+  name: p1_databricks_workload
+
+include:
+  - resources/*.yml
+
+sync:
+  paths:
+    - ../../notebooks/P1
+    - ../../src
+    - ../../configs
+    - .
+
+variables:
+  daily_schedule_cron_expression:
+    description: Deployment-provided Quartz cron expression for the daily P1 run.
+  daily_schedule_timezone:
+    description: Deployment-provided timezone for the daily P1 run.
+  job_cluster_policy_id:
+    description: ID of the approved shared P1 job compute policy.
+  job_spark_version:
+    description: Deployment-provided Databricks Runtime version (15.4 LTS or later).
+  job_run_as_service_principal:
+    description: Application ID of the approved shared P1 job identity.
+  job_max_retries:
+    description: Retry count supplied by the existing approved P1 retry policy.
+  job_min_retry_interval_millis:
+    description: Retry delay in milliseconds supplied by the existing approved P1 retry policy.
+
+targets:
+  prod:
+    mode: production

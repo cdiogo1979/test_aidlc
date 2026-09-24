@@ -1,0 +1,2 @@
+# Keep local Databricks Bundle state and variable overrides out of Git and bundle sync.
+.databricks/

@@ -1,0 +1,10 @@
+database: test_prod
+data_path: s3://test_prod
+kafka:
+  hosts: test.com:9995
+  topic: my-topic
+  security_protocol: SASL_SSL
+  sasl_mechanism: PLAIN
+  username: null  # Deployment must provide the non-secret Kafka username.
+  secret_scope: null  # Deployment must provide the Databricks secret scope name.
+  secret_key: my-secret

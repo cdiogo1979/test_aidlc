@@ -1,0 +1,70 @@
+{
+  "intent_id": "20260924-p1-layer-timestamp-columns",
+  "name": "P1 Layer Timestamp Columns",
+  "objective": "Add distinct UTC processing timestamps to P1 bronze and silver Delta records with additive schema migration and replay-safe write behavior.",
+  "date": "2026-09-24",
+  "scope": "Update existing P1 bronze and silver notebooks and shared schema validation to add bronze_ingestion_timestamp and silver_processing_timestamp. Preserve Kafka source_timestamp, historical NULL values, idempotent merges, CDF, checkpoints, quarantine, and the existing job. No live migration or deployment.",
+  "workstreams": [
+    "U4 P1 layer timestamp metadata across bronze and silver"
+  ],
+  "verification": {
+    "status": "waived",
+    "user_accepted": true,
+    "details": "The user explicitly selected A in aidlc-docs/construction/build-and-test/verification-limitation-acceptance.md and accepted the verification limitation for this intent because no Databricks environment is available. All 22 local unit tests passed and Python syntax parsing passed for four changed Python files. Delta schema migration against live tables, Change Data Feed compatibility after schema evolution, notebook execution, UTC session behavior, Kafka integration, and job execution remain unverified. No deployment or live table operation occurred. The waiver is not a successful runtime verification or production-readiness approval."
+  },
+  "artifact_inventory_complete": true,
+  "summary": {
+    "major_requirements": [
+      "Add bronze_ingestion_timestamp TIMESTAMP at first accepted bronze insert and preserve it on replay.",
+      "Add silver_processing_timestamp TIMESTAMP at accepted silver insert or winning latest-event update and preserve it on no-op replay.",
+      "Use separate UTC instants, preserve Kafka source_timestamp, and leave historical values NULL after additive migration.",
+      "Preserve existing CDF, checkpoints, latest-event ordering, quarantine, and job behavior."
+    ],
+    "design_decisions": [
+      "Use one coordinated U4 implementation across the existing bronze and silver notebooks; no service or job boundary is introduced.",
+      "Use a shared src/delta_schema.py helper to add and validate nullable TIMESTAMP columns before processing.",
+      "Generate timestamps in Spark and persist them only on accepted Delta inserts/updates.",
+      "Keep existing P1 Databricks, Spark, Delta, CDF, and Bundle technologies."
+    ],
+    "implementation_decisions": [
+      "Add each timestamp to new table schemas and migrate existing tables additively without backfill.",
+      "Set each notebook Spark session timezone to UTC before timestamp processing.",
+      "Add fake-Spark unit tests for schema-helper migration and validation behavior.",
+      "Leave job, environment configuration, secret values, and production data untouched."
+    ],
+    "deviations": [
+      "Databricks runtime verification was waived by explicit user acceptance because no Databricks environment is available; runtime behavior remains unverified.",
+      "Integration checks for Delta schema migration/CDF, notebook execution, UTC session behavior, Kafka, and job execution were documented but not run.",
+      "Operations remains a placeholder; no deployment or production operation occurred."
+    ],
+    "superseded_decisions": [
+      "The initial singular request for a timestamp column was refined into separate bronze ingestion and silver processing timestamps by approved requirements."
+    ]
+  },
+  "canonical_updates": [
+    {
+      "path": "aidlc-docs/knowledge/p1-databricks-workload.md",
+      "content": "# P1 Databricks Workload\n\n## Purpose and scope\n\nP1 ingests JSON events from Kafka into bronze Delta, quarantines malformed messages, and maintains the latest valid event per `event_key` in silver. Gold processing remains out of scope.\n\n## Architecture and contracts\n\n- `jobs/P1/` contains the authoritative Databricks Declarative Automation Bundle. Its daily job runs bronze before silver; both tasks receive the same `environment` parameter.\n- `notebooks/P1/bronze/bronze_ingestion.py` reads Kafka incrementally with Structured Streaming `AvailableNow`, uses `{data_path}/checkpoints/P1/bronze_ingestion`, and inserts records keyed by `(topic, partition, offset)` into `<database>.p1_test_kfk_brz`.\n- Bronze Change Data Feed is enabled for silver consumption. `notebooks/P1/silver/silver_processing.py` reads CDF with `AvailableNow` and uses `{data_path}/checkpoints/P1/silver_processing`.\n- Silver maintains the latest valid event per nonblank `event_key` in `<database>.p1_test`; non-key JSON properties are stored as `VARIANT`. Malformed payloads and invalid keys go to `<database>.p1_test_kfk_quarantine` with source metadata and diagnostics.\n- Latest-event ordering remains Kafka `source_timestamp`, then partition and offset. Silver and quarantine writes are separate idempotent Delta operations, not a cross-table transaction.\n- The existing silver `VARIANT` implementation requires Databricks Runtime 15.4 LTS or later.\n\n## Layer processing timestamps\n\nThe timestamp-columns intent adds `bronze_ingestion_timestamp TIMESTAMP` to bronze and `silver_processing_timestamp TIMESTAMP` to silver. They are distinct UTC processing instants; Kafka `source_timestamp` remains source event time. Bronze records the timestamp on first insertion; silver records it on an accepted current-state insert or winning update. Duplicate or no-op replay does not refresh a committed value.\n\nThe implementation adds missing nullable columns before writes and leaves historical records NULL. `src/delta_schema.py` contains the shared schema migration/type-validation helper. No timestamp was backfilled and no live table was migrated.\n\n## Configuration and security\n\n`configs/{environment}.yaml` supplies environment-specific settings. The current `prod.yaml` has database `test_prod`, data path `s3://test_prod`, Kafka host `test.com:9995`, topic `my-topic`, and secret key name `my-secret`. Kafka username and Databricks secret scope remain deployment inputs. Password material belongs only in Databricks Secrets. Never use production to test this workload.\n\nThe `prod` bundle target still requires deployment-provided schedule/timezone, compute policy/runtime, run-as service principal, and retry values. Required permissions include Kafka topic and secret access, checkpoint/storage access, bronze CDF reads, and silver/quarantine writes.\n\n## Verification and release status\n\nFor intent `20260924-p1-layer-timestamp-columns`, all 22 local unit tests passed and Python syntax checks passed for four changed files. The user explicitly accepted a verification waiver because no Databricks environment is available. Delta schema migration against live tables, CDF compatibility after schema evolution, notebook execution, UTC session behavior, Kafka integration, and job execution remain unverified. No job was deployed and no notebook or production data was run. The waiver is not evidence of runtime success or production readiness.\n\nThe previous P1 workload intent and its separate verification waiver are summarized at `aidlc-docs/archive/20260924-p1-databricks-workload/intent-summary.md`.\n\nBefore release, supply deployment values through the approved non-secret mechanism, validate the Bundle in an authorized workspace, and run P1 integration and performance checks in an isolated non-production Databricks environment. Monitoring, alerting, incident response, rollback, maintenance, and on-call procedures still require owner decisions.\n"
+    }
+  ],
+  "artifacts": [
+    "aidlc-docs/compaction/20260924-p1-layer-timestamp-columns/manifest.json",
+    "aidlc-docs/inception",
+    "aidlc-docs/construction",
+    "aidlc-docs/knowledge/p1-databricks-workload.md",
+    "aidlc-docs/operations/operations-handoff.md",
+    "notebooks/P1/bronze/bronze_ingestion.py",
+    "notebooks/P1/silver/silver_processing.py",
+    "src/delta_schema.py",
+    "tests/test_delta_schema.py"
+  ],
+  "cleanup_paths": [
+    "aidlc-docs/inception/application-design",
+    "aidlc-docs/inception/plans",
+    "aidlc-docs/inception/requirements",
+    "aidlc-docs/inception/reverse-engineering",
+    "aidlc-docs/construction/build-and-test",
+    "aidlc-docs/construction/plans",
+    "aidlc-docs/construction/u4-p1-layer-timestamp-metadata"
+  ]
+}

@@ -1,0 +1,80 @@
+{
+  "intent_id": "20260924-p1-databricks-workload",
+  "name": "P1 Databricks Workload",
+  "objective": "Build the P1 Kafka-to-Delta bronze and silver workload with quarantine handling and a scheduled Databricks job.",
+  "date": "2026-09-24",
+  "scope": "P1 bronze ingestion, silver processing and quarantine, shared configuration helpers, the daily Databricks Bundle job, and AI-DLC lifecycle/compaction workflow updates. Gold processing and production deployment are excluded.",
+  "workstreams": [
+    "P1 bronze Kafka ingestion",
+    "P1 silver processing and quarantine",
+    "P1 daily Databricks job integration",
+    "AI-DLC intent compaction and verification-waiver workflow"
+  ],
+  "verification": {
+    "status": "waived",
+    "user_accepted": true,
+    "details": "The user accepted the verification limitation because no Databricks environment is available. P1 Spark/Kafka/Delta runtime integration, performance, authenticated Bundle validation, and production permission checks were not run. Python syntax checks and static Bundle checks passed; the 16 passing automated tests cover AI-DLC lifecycle tooling only, not P1 data processing. No deployment or production data operation occurred."
+  },
+  "artifact_inventory_complete": true,
+  "summary": {
+    "major_requirements": [
+      "Consume Kafka topic my-topic incrementally and preserve source records and Kafka metadata in bronze Delta.",
+      "Use bronze Change Data Feed to process new records incrementally in silver.",
+      "Keep the latest valid event per event_key in silver and quarantine malformed or invalid messages.",
+      "Orchestrate the bronze and silver notebooks in a daily Databricks job with shared environment configuration."
+    ],
+    "design_decisions": [
+      "Use Structured Streaming AvailableNow and persistent bronze and silver checkpoints for scheduled incremental processing.",
+      "Use an insert-only bronze merge keyed by topic, partition, and offset; enable Delta Change Data Feed for silver.",
+      "Use source timestamp, then partition and offset to order events; preserve non-key JSON fields as VARIANT attributes in silver.",
+      "Run both ordered notebook tasks on a shared policy-backed job cluster and pass one environment parameter to both."
+    ],
+    "implementation_decisions": [
+      "Keep shared environment configuration helpers in src/common.py and environment values in configs/.",
+      "Keep P1 notebooks under notebooks/P1/{bronze,silver,gold}/ and the authoritative job Bundle under jobs/P1/.",
+      "Keep deployment-owned production values unset and Kafka credentials in Databricks Secrets."
+    ],
+    "deviations": [
+      "P1 runtime integration and performance verification were waived by explicit user acceptance because no Databricks environment is available; the behavior remains unverified.",
+      "The Databricks CLI was unavailable and required Bundle validation/authentication checks were not run.",
+      "The Operations workflow remains a placeholder; monitoring, incident response, rollback, maintenance, and on-call procedures are not defined."
+    ],
+    "superseded_decisions": []
+  },
+  "canonical_updates": [
+    {
+      "path": "aidlc-docs/knowledge/p1-databricks-workload.md",
+      "content": "# P1 Databricks Workload\n\n## Purpose and scope\n\nP1 ingests JSON events from Kafka into a bronze Delta table, quarantines invalid messages, and maintains the latest valid event per `event_key` in silver. Gold transformations are out of scope.\n\n## Architecture and contracts\n\n- `jobs/P1/` contains the authoritative Databricks Declarative Automation Bundle. The daily job runs bronze first and silver only after bronze succeeds; both tasks receive the same `environment` parameter.\n- `notebooks/P1/bronze/bronze_ingestion.py` reads `my-topic` incrementally using Structured Streaming `AvailableNow`, persists progress in `{data_path}/checkpoints/P1/bronze_ingestion`, and idempotently writes source records keyed by `(topic, partition, offset)` to `<database>.p1_test_kfk_brz`.\n- Bronze Change Data Feed is enabled for silver consumption. `notebooks/P1/silver/silver_processing.py` reads CDF using `AvailableNow` and its stable checkpoint `{data_path}/checkpoints/P1/silver_processing`.\n- Silver writes the latest valid event for each nonblank `event_key` to `<database>.p1_test`, preserving other JSON properties in a `VARIANT` attributes column. It writes malformed JSON, non-object roots, and invalid keys to `<database>.p1_test_kfk_quarantine` with source metadata and diagnostics.\n- Latest-event ordering is source timestamp, then Kafka partition and offset. Silver and quarantine writes are independently idempotent Delta operations; they are not a cross-table transaction.\n- The project requires Databricks Runtime 15.4 LTS or later for the silver `VARIANT` behavior.\n\n## Configuration and security\n\n`configs/{environment}.yaml` supplies environment-specific settings. The current `prod.yaml` has database `test_prod`, data path `s3://test_prod`, Kafka host `test.com:9995`, topic `my-topic`, and secret key name `my-secret`. Kafka username and Databricks secret scope are unset deployment inputs. Password material belongs only in Databricks Secrets. Never use production to test this workload.\n\nThe `prod` bundle target also requires deployment-provided schedule/timezone, compute policy/runtime, run-as service principal, and retry values. Required permissions include Kafka topic and secret access, checkpoint/storage access, bronze CDF reads, and silver/quarantine writes.\n\n## Verification and release status\n\nThe user accepted a verification waiver because no Databricks environment is available. Python syntax checks and static Bundle source checks passed; the current 16-test suite covers AI-DLC lifecycle tooling only. P1 Kafka/Spark/Delta runtime behavior, performance, authenticated Bundle validation, and production permissions remain unverified. No job has been deployed and no notebook or production data has been run. The waiver is not evidence of runtime success or production readiness.\n\nBefore a release, supply deployment values through the approved non-secret mechanism, validate the Bundle in an authorized workspace, and run P1 integration and performance checks in an isolated non-production Databricks environment. Operations procedures for monitoring, alerting, incidents, rollback, maintenance, and on-call ownership still need to be defined.\n"
+    },
+    {
+      "path": "aidlc-docs/knowledge/aidlc-intent-lifecycle.md",
+      "content": "# AI-DLC Intent Lifecycle\n\nThe project AI-DLC workflow is defined in `.agents/skills/aidlc-workflows/`. `aidlc-docs/aidlc-state.md` is the current intent state record; `aidlc-docs/audit.md` records active history. Closed intent summaries and full snapshots are stored in `aidlc-docs/archive/<intent-id>/`.\n\nThe lifecycle supports `ACTIVE`, `VERIFICATION_COMPLETE`, `VERIFICATION_WAIVED`, `COMPACTION`, `COMPACTION_FAILED`, `COMPACTED`, and `CLOSED`. `VERIFICATION_COMPLETE` requires successful Build and Test verification and approval. `VERIFICATION_WAIVED` requires explicit user acceptance of a documented limitation; it must never be reported as a passing result.\n\nAfter a passed result or accepted waiver and separate approval to close, prepare a curated manifest at `aidlc-docs/compaction/<intent-id>/manifest.json`. A waiver manifest uses `verification.status: waived`, `verification.user_accepted: true`, and details describing the unverified scope; the lifecycle state must record the same accepted waiver. Run a dry-run and review its archive, canonical updates, and cleanup list before applying.\n\nUse `python3 scripts/aidlc_intent.py compact <intent-id> --dry-run` to preview and `python3 scripts/aidlc_intent.py compact <intent-id> --apply` to archive the complete listed history, apply curated canonical updates, clear workflow-only inception/construction artifacts, and close the intent. Never put application source or configuration in cleanup paths. Runtime waivers do not authorize deployment.\n"
+    }
+  ],
+  "artifacts": [
+    "aidlc-docs/compaction/20260924-p1-databricks-workload/manifest.json",
+    "aidlc-docs/inception",
+    "aidlc-docs/construction",
+    "aidlc-docs/operations/operations-handoff.md",
+    "AGENTS.md",
+    ".agents/skills/aidlc-workflows",
+    ".gitignore",
+    "configs/prod.yaml",
+    "jobs/P1",
+    "notebooks/P1",
+    "scripts/aidlc_intent.py",
+    "src",
+    "tests/test_aidlc_intent.py"
+  ],
+  "cleanup_paths": [
+    "aidlc-docs/construction/build-and-test",
+    "aidlc-docs/construction/plans",
+    "aidlc-docs/construction/u1-bronze-ingestion",
+    "aidlc-docs/construction/u2-silver-processing-and-quarantine",
+    "aidlc-docs/construction/u3-p1-integration",
+    "aidlc-docs/inception/application-design",
+    "aidlc-docs/inception/plans",
+    "aidlc-docs/inception/requirements",
+    "aidlc-docs/inception/user-stories"
+  ]
+}

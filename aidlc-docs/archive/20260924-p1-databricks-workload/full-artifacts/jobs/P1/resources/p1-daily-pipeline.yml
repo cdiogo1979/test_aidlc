@@ -1,0 +1,37 @@
+resources:
+  jobs:
+    p1_daily_pipeline:
+      name: P1 Daily Pipeline
+      max_concurrent_runs: 1
+      queue:
+        enabled: true
+      schedule:
+        quartz_cron_expression: ${var.daily_schedule_cron_expression}
+        timezone_id: ${var.daily_schedule_timezone}
+        pause_status: UNPAUSED
+      parameters:
+        - name: environment
+          default: prod
+      run_as:
+        service_principal_name: ${var.job_run_as_service_principal}
+      job_clusters:
+        - job_cluster_key: p1_shared_job_cluster
+          new_cluster:
+            spark_version: ${var.job_spark_version}
+            policy_id: ${var.job_cluster_policy_id}
+            apply_policy_default_values: true
+      tasks:
+        - task_key: bronze_ingestion
+          job_cluster_key: p1_shared_job_cluster
+          max_retries: ${var.job_max_retries}
+          min_retry_interval_millis: ${var.job_min_retry_interval_millis}
+          notebook_task:
+            notebook_path: ../../../notebooks/P1/bronze/bronze_ingestion.py
+        - task_key: silver_processing
+          job_cluster_key: p1_shared_job_cluster
+          depends_on:
+            - task_key: bronze_ingestion
+          max_retries: ${var.job_max_retries}
+          min_retry_interval_millis: ${var.job_min_retry_interval_millis}
+          notebook_task:
+            notebook_path: ../../../notebooks/P1/silver/silver_processing.py
