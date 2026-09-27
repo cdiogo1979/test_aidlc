@@ -1,0 +1,88 @@
+{
+  "intent_id": "20260927-p2-pipeline",
+  "name": "P2 Kafka Pipeline",
+  "objective": "Add a P2 daily Databricks pipeline equivalent to P1 processing with a separate Kafka topic and isolated state.",
+  "date": "2026-09-27",
+  "scope": "P2 shared-config topic override, bronze/silver notebooks, isolated job bundle and state, property tests, Jenkins CI analysis/test steps, and AI-DLC artifacts. Deployment and runtime execution are excluded.",
+  "workstreams": [
+    "P2 Bronze Ingestion",
+    "P2 Silver Processing and Quarantine",
+    "P2 Daily Job",
+    "Shared Production Configuration",
+    "CI Code Analysis and Property Tests"
+  ],
+  "verification": {
+    "status": "waived",
+    "user_accepted": true,
+    "details": "Local checks passed for the code-generation result: Black 25.11.0, Ruff 0.16.6, Python syntax compilation, YAML parsing, and 25 unit/property tests using Hypothesis 6.141.1. Repository pins Black 26.5.1 and Hypothesis 6.168.1 were unavailable from the configured package index. Databricks bundle validation and Databricks/Kafka/Delta/storage runtime execution were not performed. After those checks, Jenkins was updated to use its venv consistently and to run Ruff, Flake8, and Bandit as parallel Code Analysis stages; the Jenkins pipeline and new analyzers were not executed. The configured package index did not provide pinned Flake8 7.4.1 (available through 7.3.0), preventing local analyzer execution. The user explicitly accepted both the external Databricks verification limitation and this additional Jenkins/analyzer limitation. No PR or deployment occurred."
+  },
+  "artifact_inventory_complete": true,
+  "summary": {
+    "major_requirements": [
+      "P2 duplicates P1 bronze/silver daily processing semantics while consuming only Kafka topic my-test-p2.",
+      "Use shared configs/prod.yaml for all projects; preserve P1 kafka.topic and select P2 through topics_by_project.P2.",
+      "Isolate P2 tables, quarantine output, checkpoints, notebooks, and job resources from P1.",
+      "Add deterministic Hypothesis properties and CI Code Analysis/test stages."
+    ],
+    "design_decisions": [
+      "P2 topic selection requires an explicit project override and does not fall back to the P1 default.",
+      "The P2 job runs bronze before silver; bronze Delta/CDF remains their data handoff.",
+      "P2 follows P1 deployment inputs and runtime requirement; schedule, identity, compute, and retry values remain deployment-provided."
+    ],
+    "implementation_decisions": [
+      "Created P2 bronze and silver notebooks with P2-specific table and checkpoint identifiers.",
+      "Created an independent Databricks bundle and daily job under jobs/P2.",
+      "Added P2 topic mapping to shared production config without changing P1 default.",
+      "Added Hypothesis tests, pinned Flake8/Bandit dependencies, and parallel Ruff Lint, Flake8 Style Check, and Bandit Security Scan Jenkins sub-stages.",
+      "Jenkins invokes Python, pip, Ruff, Flake8, and Bandit from the configured virtual environment directly."
+    ],
+    "deviations": [
+      "The initial separate P2 config/profile proposal was superseded after the user clarified that prod config is shared across projects.",
+      "Local tools used Black 25.11.0 and Hypothesis 6.141.1 instead of repository pins because the configured index lacked those pinned releases.",
+      "Databricks bundle/runtime verification and the final Jenkins pipeline/analyzer run remain unverified under explicitly accepted limitations."
+    ],
+    "superseded_decisions": [
+      "Separate configs/p2_prod.yaml and p2_prod profile were superseded by shared configs/prod.yaml and explicit topics_by_project.P2 override."
+    ]
+  },
+  "canonical_updates": [
+    {
+      "path": "aidlc-docs/knowledge/P1/application-design.md",
+      "content": "# P1 Application Design\n\n## Purpose and scope\n\nP1 is a daily Databricks workload that ingests Kafka records into bronze Delta, processes valid JSON events into a silver current-state table, and quarantines malformed records. Gold processing is outside the current P1 scope.\n\n## Components and responsibilities\n\n- **P1 Daily Job (U3)**: Databricks Declarative Automation Bundle job that runs bronze before silver, passes the same environment and task parameters, and reports failure if either required task fails.\n- **Bronze Ingestion (U1)**: Reads the configured Kafka topic, preserves payload and source metadata, and writes incrementally to the bronze Delta table.\n- **Silver Processing and Quarantine (U2)**: Reads the bronze table through Delta Change Data Feed (CDF), validates and shapes JSON events, maintains one latest current-state row per `event_key`, and stores invalid records in quarantine.\n- **Layer Timestamp Metadata (U4)**: Adds independent accepted-processing timestamps and additive nullable schema handling to bronze and silver; it extends those components and does not add a separate scheduled pipeline task.\n- **Environment configuration**: `configs/{environment}.yaml` is shared by projects and provides database, storage, Kafka, and secret-reference settings. P1 continues to use the configured `kafka.topic` default; project-specific topic overrides may be added without changing that default. Each notebook resolves its own selected configuration.\n- **Databricks Secrets**: Supplies Kafka credential material at runtime. Secrets are not passed in job parameters or checked-in source.\n- **Delta tables**: Bronze is the persisted U1-to-U2 handoff. Silver and quarantine are outputs owned by U2.\n\n## Interfaces and data flow\n\n```text\nDaily P1 job (U3)\n  \u2514\u2500 U1 Bronze Ingestion \u2500\u2500> bronze Delta + CDF \u2500\u2500> U2 Silver Processing\n                                                       \u251c\u2500> silver current state\n                                                       \u2514\u2500> quarantine\n```\n\n- U1 consumes the configured Kafka topic and writes `<database>.p1_test_kfk_brz`.\n- U2 consumes bronze snapshot/CDF and writes `<database>.p1_test` and `<database>.p1_test_kfk_quarantine`.\n- The job runs U2 only after U1 succeeds. Records are handed off through bronze Delta, not job parameters.\n- Both notebooks receive `environment`; the job supplies independent bronze and silver lookback parameters, defaulting to zero for checkpoint continuation.\n\n## Component interfaces\n\n- U1 accepts the environment and bronze lookback parameters; its outputs are persisted bronze data and checkpoint progress.\n- U2 accepts the environment and silver lookback parameters; its outputs are silver current state, quarantine rows, and CDF checkpoint progress.\n- U3 accepts a scheduled or manual job invocation; overall success requires both dependent tasks to succeed.\n\nConcrete runtime contracts, record semantics, and business rules are maintained in the per-component functional-design documents.\n\n## Architecture decisions and constraints\n\n- Keep one daily job with sequential bronze and silver tasks.\n- Keep Kafka ingestion in U1 and payload validation/current-state logic in U2.\n- Use bronze Delta and CDF as the durable inter-component contract.\n- Keep separate checkpoints for Kafka ingestion and bronze CDF consumption. A positive layer lookback deliberately resets that layer's checkpoint and replays from its cutoff; zero continues from its checkpoint.\n- Silver uses Delta `VARIANT` for extensible JSON properties and requires Databricks Runtime 15.4 LTS or later.\n- The current prod target still requires deployment-provided schedule/timezone, compute, run-as identity, and retry settings. See `p1-databricks-workload.md` for configuration and verification limits.\n\n## Current verification status\n\nP1 runtime behavior has not been verified in a Databricks environment. The workload knowledge document and archived intent summaries describe accepted verification limitations. This architecture records the approved design and is not evidence of successful deployment or runtime execution.\n\n## Historical sources\n\n- `aidlc-docs/archive/20260924-p1-databricks-workload/full-artifacts/aidlc-docs/inception/application-design/application-design.md`\n- `aidlc-docs/archive/20260924-p1-layer-timestamp-columns/full-artifacts/aidlc-docs/inception/application-design/`\n"
+    },
+    {
+      "path": "aidlc-docs/knowledge/P2/application-design.md",
+      "content": "# P2 Application Design\n\n## Purpose and scope\n\nP2 is a separate daily Databricks pipeline that follows P1 processing behavior while consuming Kafka topic `my-test-p2`. It owns separate bronze, silver, quarantine, and checkpoint state. The shared `configs/prod.yaml` remains common to all projects; P1 retains the existing default topic `my-topic`, and P2 selects its explicit `kafka.topics_by_project.P2` override.\n\nP2 source, configuration, and job artifacts are present in the repository. No PR, deployment, Databricks bundle validation, or Databricks/Kafka/storage runtime execution occurred. Verification limitations were explicitly accepted and are preserved in the archived intent record; this design is not evidence of runtime success.\n\n## Components and responsibilities\n\n- **P2 Daily Job (U3)**: Databricks bundle job that runs P2 bronze before P2 silver, with P1-equivalent schedule, parameters, retry behavior, and deployment inputs.\n- **Bronze Ingestion (U1)**: Reads only the configured P2 topic, preserves Kafka payload and metadata, and writes the P2 bronze Delta table.\n- **Silver Processing and Quarantine (U2)**: Reads P2 bronze CDF, validates events, maintains P2 current state, and writes invalid records to P2 quarantine.\n- **Environment configuration**: Uses the shared `configs/prod.yaml`; the P2 topic resolver fails closed if the P2 override is absent.\n- **Databricks Secrets**: Supplies Kafka credential material at runtime through the existing reference pattern. Secret values are not committed.\n\n## Interfaces and data flow\n\n```text\nP2 Daily Job (U3)\n  \u2514\u2500 P2 Bronze Ingestion (U1) \u2500\u2500> P2 bronze Delta + CDF \u2500\u2500> P2 Silver (U2)\n                                                              \u251c\u2500> P2 silver current state\n                                                              \u2514\u2500> P2 quarantine\n```\n\n- U1 writes `<database>.p2_test_kfk_brz` and uses `{data_path}/checkpoints/P2/bronze_ingestion`.\n- U2 reads that P2-owned bronze table and writes `<database>.p2_test` and `<database>.p2_test_kfk_quarantine`, using `{data_path}/checkpoints/P2/silver_processing`.\n- U2 starts only after U1 succeeds. Bronze Delta is the persisted handoff; no payloads or credentials pass through job parameters.\n- Both notebooks receive `environment=prod`; each task has its own lookback control and checkpoint.\n\n## Architecture decisions and constraints\n\n- Keep a separate `jobs/P2/` bundle and `notebooks/P2/` sources.\n- Preserve P1 processing behavior and orchestration while assigning P2-only table/checkpoint names and paths.\n- Keep `configs/prod.yaml` shared across projects; retain the P1 default topic and select P2 through an explicit project override.\n- Require Databricks Runtime 15.4 LTS or later and deployment-provided schedule, timezone, compute policy, service identity, and retry values, following P1's contract.\n- Deployment requires successful bundle validation and target-workspace checks; the current intent records accepted verification limitations and no deployment.\n\n## Historical source\n\n- `aidlc-docs/archive/20260927-p2-pipeline/intent-summary.md`\n"
+    },
+    {
+      "path": "aidlc-docs/knowledge/P2/functional-design/U1-bronze-ingestion.md",
+      "content": "# U1 P2 Bronze Ingestion \u2014 Functional Design\n\n## Purpose and boundary\n\nRead Kafka records from the explicit P2 project topic and preserve source payload and metadata unchanged in P2 bronze Delta. U1 owns Kafka acquisition, source fidelity, deduplication, and P2 Kafka checkpoint progress. JSON interpretation and quarantine belong to U2.\n\n## Inputs and outputs\n\n- **Input**: Kafka record value, key, headers, topic, partition, offset, and source timestamp from topic `my-test-p2`.\n- **Configuration**: Shared `configs/prod.yaml`; Kafka settings and secret references; `bronze_lookback_days` parameter.\n- **Output**: `<database>.p2_test_kfk_brz`, with Delta CDF enabled.\n- **Progress**: `{data_path}/checkpoints/P2/bronze_ingestion`.\n\n## Business logic and rules\n\n1. Resolve `kafka.topics_by_project.P2`; fail closed if the mapping or topic is absent/blank. Never fall back to the shared default topic.\n2. Resolve Kafka credentials through Databricks Secrets; do not store secret values in source or job parameters.\n3. With zero lookback, continue from the durable P2 checkpoint (starting at earliest available offset on first start). With positive lookback, reset only the P2 bronze checkpoint and replay from the configured Kafka timestamp cutoff.\n4. Preserve source payload and Kafka metadata. Deduplicate by `(topic, partition, offset)` and retain CDF for silver.\n5. Keep P1's `kafka.topic`, tables, and checkpoints unchanged and isolated from P2.\n\n## Failure and recovery\n\nKafka, configuration, checkpoint, or persistence failures fail the task. Retries rely on the P2 checkpoint and source-identity deduplication. A positive lookback intentionally resets P2 bronze checkpoint state and may replay records; it does not alter P1 state.\n"
+    },
+    {
+      "path": "aidlc-docs/knowledge/P2/functional-design/U2-silver-processing-and-quarantine.md",
+      "content": "# U2 P2 Silver Processing and Quarantine \u2014 Functional Design\n\n## Purpose and boundary\n\nRead P2 bronze Delta snapshot/CDF, validate and shape JSON events, maintain P2 current state, and quarantine invalid records. U2 does not read or write P1 tables or checkpoints.\n\n## Inputs and outputs\n\n- **Input**: `<database>.p2_test_kfk_brz` and its Delta CDF.\n- **Configuration**: Shared `configs/prod.yaml` and `silver_lookback_days` parameter.\n- **Outputs**: `<database>.p2_test` and `<database>.p2_test_kfk_quarantine`.\n- **Progress**: `{data_path}/checkpoints/P2/silver_processing`.\n\n## Business logic and rules\n\n1. Consume the P2 bronze initial snapshot and changes through CDF, retaining P1's validation and event-ordering behavior.\n2. Accept valid object JSON with a nonblank string `event_key`; preserve extensible attributes and retain the latest event per key under P1's source timestamp, partition, and offset order.\n3. Route invalid JSON or invalid event keys to P2 quarantine with raw payload, source identity/time, and diagnostic context.\n4. With zero lookback, continue from the P2 silver checkpoint. Positive lookback resets/replays only P2 silver processing according to the P1 contract.\n5. Preserve P1's processing timestamp and additive nullable schema behavior while using P2-owned tables/checkpoints.\n\n## Failure and recovery\n\nMissing or unavailable CDF history, table/schema errors, or read/write failures fail the task rather than silently skipping changes. Retries resume using P2 checkpoint state and idempotent merge behavior.\n"
+    },
+    {
+      "path": "aidlc-docs/knowledge/P2/functional-design/U3-p2-integration.md",
+      "content": "# U3 P2 Pipeline Integration \u2014 Functional Design\n\n## Purpose and boundary\n\nOrchestrate P2 bronze and silver as a separate daily Databricks job. U3 owns task order, environment/parameter propagation, schedule, retry settings, and overall run outcome. U1 owns Kafka ingestion; U2 owns current-state processing and quarantine.\n\n## Inputs and outputs\n\n- **Trigger**: Daily schedule or manual invocation.\n- **Parameters**: `environment` defaulting to `prod`, `bronze_lookback_days` defaulting to `0`, and `silver_lookback_days` defaulting to `0`.\n- **Tasks**: P2 bronze followed by P2 silver.\n- **Bundle/job**: `jobs/P2/databricks.yml`; bundle `p2_databricks_workload`; job `P2 Daily Pipeline`.\n\n## Business rules\n\n1. Run bronze first and start silver only after bronze succeeds.\n2. Both notebooks load the shared production config independently; secrets and records are not job parameters.\n3. Use P2-specific tables and checkpoints for all task state.\n4. Preserve P1-equivalent schedule, runtime/compute policy, run-as identity, retry controls, and task parameter names/defaults. Their deployment values are required inputs.\n5. A task failure makes the job fail; never report success after an incomplete pipeline.\n\n## Deployment and verification boundary\n\nBundle validation and runtime execution in the target Databricks workspace remain unverified under the user's accepted verification waiver. Deployment instructions require resolving environment variables, permissions, topic, secrets, storage, and recovery ownership before deployment or schedule enablement.\n"
+    }
+  ],
+  "artifacts": [
+    "aidlc-docs/current/inception",
+    "aidlc-docs/current/construction",
+    "aidlc-docs/current/deploy",
+    "configs/prod.yaml",
+    "jobs/P2",
+    "notebooks/P2",
+    "tests/test_p2_pipeline_properties.py",
+    "requirements-dev.txt",
+    "cicd/Jenkinsfile",
+    "aidlc-docs/current/compaction/20260927-p2-pipeline/manifest.json"
+  ],
+  "cleanup_paths": [
+    "aidlc-docs/current/inception",
+    "aidlc-docs/current/construction",
+    "aidlc-docs/current/deploy",
+    "aidlc-docs/current/compaction"
+  ]
+}

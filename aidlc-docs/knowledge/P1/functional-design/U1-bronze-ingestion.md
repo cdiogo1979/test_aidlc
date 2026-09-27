@@ -43,4 +43,4 @@ No available records is a successful no-op. Kafka access, table migration, or pe
 ## Historical sources
 
 - `aidlc-docs/archive/20260924-p1-databricks-workload/full-artifacts/aidlc-docs/construction/u1-bronze-ingestion/functional-design/`
-- `aidlc-docs/archive/20260924-p1-layer-timestamp-columns/full-artifacts/aidlc-docs/construction/u4-p1-layer-timestamp-metadata/functional-design/` (timestamp semantics)
+- Timestamp ownership and semantics were consolidated from the archived timestamp intent; historical source: `aidlc-docs/archive/20260924-p1-layer-timestamp-columns/full-artifacts/aidlc-docs/construction/u4-p1-layer-timestamp-metadata/functional-design/`.

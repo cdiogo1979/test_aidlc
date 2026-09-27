@@ -42,17 +42,18 @@ Create `aidlc-docs/current/construction/build-and-test/build-instructions.md`:
 # Example: npm install, mvn dependency:resolve, pip install -r requirements.txt
 \`\`\`
 
-### 2. Format and Lint Changed Python Files (When Applicable)
-For Python projects, include the repository's formatter and linter in Build & Test. Install the pinned development tools and run them against the Python files changed for this intent:
+### 2. Run Repository Python Code Analysis (When Applicable)
+For this repository's Python project, Build & Test must run the same code analysis checks and scope as `cicd/Jenkinsfile`. Install the pinned development tools, then run the configured tools from the repository root so each reads its settings from `pyproject.toml`:
 
-\`\`\`bash
+```bash
 python3 -m pip install -r requirements-dev.txt
-black <changed-python-paths>
-black --check <changed-python-paths>
-ruff check <changed-python-paths>
-\`\`\`
+ruff check notebooks scripts src tests
+black --check notebooks scripts src tests
+flake8 notebooks scripts src tests
+bandit -c pyproject.toml -r notebooks scripts src tests
+```
 
-Formatting is applied before the read-only check and lint. Use `ruff check --fix` only when the proposed automatic changes are reviewed. Avoid formatting unrelated Python files. Record formatter and linter commands, scope, and results in the Build & Test summary.
+Ruff and Black read their configuration from `pyproject.toml`; Flake8 reads `[tool.flake8]` through the installed Flake8-pyproject plugin; Bandit reads `[tool.bandit]` via `-c pyproject.toml`. Keep Jenkins and AI-DLC Build & Test commands and folder scope aligned when either changes. These are read-only checks; do not format unrelated files automatically. Record each command, scope, and result in the Build & Test summary. If a folder is absent in another project, use only applicable project folders and explain the adjustment.
 
 ### 3. Configure Environment
 \`\`\`bash

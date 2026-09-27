@@ -7,10 +7,9 @@ P1 is a daily Databricks workload that ingests Kafka records into bronze Delta, 
 ## Components and responsibilities
 
 - **P1 Daily Job (U3)**: Databricks Declarative Automation Bundle job that runs bronze before silver, passes the same environment and task parameters, and reports failure if either required task fails.
-- **Bronze Ingestion (U1)**: Reads the configured Kafka topic, preserves payload and source metadata, and writes incrementally to the bronze Delta table.
-- **Silver Processing and Quarantine (U2)**: Reads the bronze table through Delta Change Data Feed (CDF), validates and shapes JSON events, maintains one latest current-state row per `event_key`, and stores invalid records in quarantine.
-- **Layer Timestamp Metadata (U4)**: Adds independent accepted-processing timestamps and additive nullable schema handling to bronze and silver; it extends those components and does not add a separate scheduled pipeline task.
-- **Environment configuration**: `configs/{environment}.yaml` provides environment-specific database, storage, Kafka, and secret-reference settings. Each notebook resolves its own selected configuration.
+- **Bronze Ingestion (U1)**: Reads the configured Kafka topic, preserves payload and source metadata, and writes incrementally to the bronze Delta table. U1 assigns the UTC `bronze_ingestion_timestamp` on first insertion and owns its nullable additive schema handling.
+- **Silver Processing and Quarantine (U2)**: Reads the bronze table through Delta Change Data Feed (CDF), validates and shapes JSON events, maintains one latest current-state row per `event_key`, and stores invalid records in quarantine. U2 assigns the UTC `silver_processing_timestamp` on accepted inserts/winning updates and owns its nullable additive schema handling.
+- **Environment configuration**: `configs/{environment}.yaml` is shared by projects and provides database, storage, Kafka, and secret-reference settings. P1 continues to use the configured `kafka.topic` default; project-specific topic overrides may be added without changing that default. Each notebook resolves its own selected configuration.
 - **Databricks Secrets**: Supplies Kafka credential material at runtime. Secrets are not passed in job parameters or checked-in source.
 - **Delta tables**: Bronze is the persisted U1-to-U2 handoff. Silver and quarantine are outputs owned by U2.
 
@@ -34,7 +33,7 @@ Daily P1 job (U3)
 - U2 accepts the environment and silver lookback parameters; its outputs are silver current state, quarantine rows, and CDF checkpoint progress.
 - U3 accepts a scheduled or manual job invocation; overall success requires both dependent tasks to succeed.
 
-Concrete runtime contracts, record semantics, and business rules are maintained in the per-component functional-design documents.
+Concrete runtime contracts, record semantics, and business rules are maintained in the per-component functional-design documents. U1 and U2 own their respective layer processing timestamps and additive nullable schema behavior; U3 continues to orchestrate the same bronze-then-silver task graph and does not implement timestamp writes.
 
 ## Architecture decisions and constraints
 
@@ -52,4 +51,4 @@ P1 runtime behavior has not been verified in a Databricks environment. The workl
 ## Historical sources
 
 - `aidlc-docs/archive/20260924-p1-databricks-workload/full-artifacts/aidlc-docs/inception/application-design/application-design.md`
-- `aidlc-docs/archive/20260924-p1-layer-timestamp-columns/full-artifacts/aidlc-docs/inception/application-design/`
+- `aidlc-docs/archive/20260924-p1-layer-timestamp-columns/full-artifacts/aidlc-docs/inception/application-design/` (historical source)
