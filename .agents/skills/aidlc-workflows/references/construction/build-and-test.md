@@ -23,7 +23,7 @@ Analyze the project to determine appropriate testing strategy:
 
 ## Step 2: Generate Build Instructions
 
-Create `aidlc-docs/construction/build-and-test/build-instructions.md`:
+Create `aidlc-docs/current/construction/build-and-test/build-instructions.md`:
 
 ```markdown
 # Build Instructions
@@ -42,19 +42,31 @@ Create `aidlc-docs/construction/build-and-test/build-instructions.md`:
 # Example: npm install, mvn dependency:resolve, pip install -r requirements.txt
 \`\`\`
 
-### 2. Configure Environment
+### 2. Format and Lint Changed Python Files (When Applicable)
+For Python projects, include the repository's formatter and linter in Build & Test. Install the pinned development tools and run them against the Python files changed for this intent:
+
+\`\`\`bash
+python3 -m pip install -r requirements-dev.txt
+black <changed-python-paths>
+black --check <changed-python-paths>
+ruff check <changed-python-paths>
+\`\`\`
+
+Formatting is applied before the read-only check and lint. Use `ruff check --fix` only when the proposed automatic changes are reviewed. Avoid formatting unrelated Python files. Record formatter and linter commands, scope, and results in the Build & Test summary.
+
+### 3. Configure Environment
 \`\`\`bash
 [Commands to set up environment]
 # Example: export variables, configure credentials
 \`\`\`
 
-### 3. Build All Units
+### 4. Build All Units
 \`\`\`bash
 [Command to build all units]
 # Example: mvn clean install, npm run build, brazil-build
 \`\`\`
 
-### 4. Verify Build Success
+### 5. Verify Build Success
 - **Expected Output**: [Describe successful build output]
 - **Build Artifacts**: [List generated artifacts and locations]
 - **Common Warnings**: [Note any acceptable warnings]
@@ -74,7 +86,7 @@ Create `aidlc-docs/construction/build-and-test/build-instructions.md`:
 
 ## Step 3: Generate Unit Test Execution Instructions
 
-Create `aidlc-docs/construction/build-and-test/unit-test-instructions.md`:
+Create `aidlc-docs/current/construction/build-and-test/unit-test-instructions.md`:
 
 ```markdown
 # Unit Test Execution
@@ -104,7 +116,7 @@ If tests fail:
 
 ## Step 4: Generate Integration Test Instructions
 
-Create `aidlc-docs/construction/build-and-test/integration-test-instructions.md`:
+Create `aidlc-docs/current/construction/build-and-test/integration-test-instructions.md`:
 
 ```markdown
 # Integration Test Instructions
@@ -162,7 +174,7 @@ Test interactions between units/services to ensure they work together correctly.
 
 ## Step 5: Generate Performance Test Instructions (If Applicable)
 
-Create `aidlc-docs/construction/build-and-test/performance-test-instructions.md`:
+Create `aidlc-docs/current/construction/build-and-test/performance-test-instructions.md`:
 
 ```markdown
 # Performance Test Instructions
@@ -225,20 +237,20 @@ If performance doesn't meet requirements:
 Based on project requirements, generate additional test instruction files:
 
 ### Contract Tests (For Microservices)
-Create `aidlc-docs/construction/build-and-test/contract-test-instructions.md`:
+Create `aidlc-docs/current/construction/build-and-test/contract-test-instructions.md`:
 - API contract validation between services
 - Consumer-driven contract testing
 - Schema validation
 
 ### Security Tests
-Create `aidlc-docs/construction/build-and-test/security-test-instructions.md`:
+Create `aidlc-docs/current/construction/build-and-test/security-test-instructions.md`:
 - Vulnerability scanning
 - Dependency security checks
 - Authentication/authorization testing
 - Input validation testing
 
 ### End-to-End Tests
-Create `aidlc-docs/construction/build-and-test/e2e-test-instructions.md`:
+Create `aidlc-docs/current/construction/build-and-test/e2e-test-instructions.md`:
 - Complete user workflow testing
 - Cross-service scenarios
 - UI testing (if applicable)
@@ -247,7 +259,7 @@ Create `aidlc-docs/construction/build-and-test/e2e-test-instructions.md`:
 
 ## Step 7: Generate Test Summary
 
-Create `aidlc-docs/construction/build-and-test/build-and-test-summary.md`:
+Create `aidlc-docs/current/construction/build-and-test/build-and-test-summary.md`:
 
 ```markdown
 # Build and Test Summary
@@ -259,6 +271,11 @@ Create `aidlc-docs/construction/build-and-test/build-and-test-summary.md`:
 - **Build Time**: [Duration]
 
 ## Test Execution Summary
+
+### Python Code Quality (When Applicable)
+- **Formatter**: Black [version]; changed Python paths checked: [paths]; status: [Pass/Fail/N/A]
+- **Linter**: Ruff [version]; changed Python paths checked: [paths]; status: [Pass/Fail/N/A]
+- **Commands and findings**: [Commands run and concise result]
 
 ### Unit Tests
 - **Total Tests**: [X]
@@ -287,10 +304,10 @@ Create `aidlc-docs/construction/build-and-test/build-and-test-summary.md`:
 ## Overall Status
 - **Build**: [Success/Failed]
 - **All Tests**: [Pass/Fail]
-- **Ready for Operations**: [Yes/No]
+- **Ready for Deploy handoff**: [Yes/No]
 
 ## Next Steps
-[If all pass]: Ready to proceed to Operations phase for deployment planning
+[If results are accepted]: Ready to prepare the Deploy handoff; deployment itself is not authorized by this approval
 [If failures]: Address failing tests and rebuild
 ```
 
@@ -298,7 +315,7 @@ Create `aidlc-docs/construction/build-and-test/build-and-test-summary.md`:
 
 ## Step 8: Update State Tracking
 
-Update `aidlc-docs/aidlc-state.md`:
+Update `aidlc-docs/current/aidlc-state.md`:
 - Mark Build and Test stage as complete
 - Update current status
 
@@ -324,7 +341,7 @@ Present completion message in this structure:
 
 ```markdown
 > **📋 <u>**REVIEW REQUIRED:**</u>**  
-> Please examine the build and test summary at: `aidlc-docs/construction/build-and-test/build-and-test-summary.md`
+> Please examine the build and test summary at: `aidlc-docs/current/construction/build-and-test/build-and-test-summary.md`
 
 
 
@@ -333,7 +350,7 @@ Present completion message in this structure:
 > **You may:**
 >
 > 🔧 **Request Changes** - Ask for modifications to the build and test instructions based on your review
-> ✅ **Approve & Continue** - Approve build and test results and proceed to **Operations**
+> ✅ **Approve & Continue** - Approve build and test results and proceed to the **Deploy** handoff
 
 ---
 ```
@@ -342,7 +359,7 @@ Present completion message in this structure:
 
 ## Step 10: Log Interaction
 
-**MANDATORY**: Log the stage completion in `aidlc-docs/audit.md`:
+**MANDATORY**: Log the stage completion in `aidlc-docs/current/audit.md`:
 
 ```markdown
 ## Build and Test Stage
@@ -363,4 +380,4 @@ Present completion message in this structure:
 
 ## Step 11: Intent Verification and Artifact Compaction
 
-When build and test verification succeeds and the user approves the completed results, update the current intent lifecycle in `aidlc-docs/aidlc-state.md` to `VERIFICATION_COMPLETE`. If a required environment is unavailable, the user may instead explicitly accept a documented verification limitation; record the unverified scope and set lifecycle status to `VERIFICATION_WAIVED`, never `VERIFICATION_COMPLETE`. Neither lifecycle state replaces the normal Build and Test review gate or alters the existing phase sequence. Once the completed or waived intent is separately approved for closure, follow [Artifact Compaction / Intent Closure](../common/artifact-compaction.md) to classify artifacts, curate canonical knowledge, create the intent summary and manifest, preview, archive full history, and close the intent. If verification fails or the user has not accepted a waiver, leave lifecycle status active and do not compact.
+When build and test verification succeeds and the user approves the completed results, update the current intent lifecycle in `aidlc-docs/current/aidlc-state.md` to `VERIFICATION_COMPLETE`. If a required environment is unavailable, the user may instead explicitly accept a documented verification limitation; record the unverified scope and set lifecycle status to `VERIFICATION_WAIVED`, never `VERIFICATION_COMPLETE`. Neither lifecycle state replaces the normal Build and Test review gate or alters the existing phase sequence. Once the completed or waived intent is separately approved for closure, follow [Artifact Compaction / Intent Closure](../common/artifact-compaction.md) to classify artifacts, curate canonical knowledge, create the intent summary and manifest, preview, archive full history, and close the intent. If verification fails or the user has not accepted a waiver, leave lifecycle status active and do not compact.

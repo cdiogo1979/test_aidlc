@@ -1,0 +1,38 @@
+pipeline {
+    agent any
+
+    options {
+        skipDefaultCheckout(true)
+    }
+
+    stages {
+        stage('Checkout master') {
+            steps {
+                checkout([
+                    $class: 'GitSCM',
+                    branches: [[name: '*/master']],
+                    userRemoteConfigs: scm.userRemoteConfigs
+                ])
+            }
+        }
+
+        stage('Install lint dependencies') {
+            steps {
+                sh '''
+                    python3 -m venv .venv
+                    . .venv/bin/activate
+                    python -m pip install --disable-pip-version-check -r requirements-dev.txt
+                '''
+            }
+        }
+
+        stage('Lint') {
+            steps {
+                sh '''
+                    . .venv/bin/activate
+                    ruff check .
+                '''
+            }
+        }
+    }
+}

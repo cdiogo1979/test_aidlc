@@ -23,8 +23,9 @@ Design detailed business logic for the unit, technology-agnostic and focused pur
 ## Steps to Execute
 
 ### Step 1: Analyze Unit Context
-- Read unit definition from `aidlc-docs/inception/application-design/unit-of-work.md`
-- Read assigned stories from `aidlc-docs/inception/application-design/unit-of-work-story-map.md`
+- Read unit definition from `aidlc-docs/current/inception/application-design/unit-of-work.md`
+- Read assigned stories from `aidlc-docs/current/inception/application-design/unit-of-work-story-map.md`
+- Identify the owning subproject and read `aidlc-docs/knowledge/<project>/application-design.md` and the relevant `aidlc-docs/knowledge/<project>/functional-design/<component>.md`, when present. Treat them as canonical baselines and resolve conflicts against approved current requirements.
 - Understand unit responsibilities and boundaries
 
 ### Step 2: Create Functional Design Plan
@@ -53,7 +54,7 @@ Design detailed business logic for the unit, technology-agnostic and focused pur
 - **Frontend Components** (if applicable) - Ask about UI component structure, user interactions, state management, and form handling
 
 ### Step 4: Store Plan
-- Save as `aidlc-docs/construction/plans/{unit-name}-functional-design-plan.md`
+- Save as `aidlc-docs/current/construction/plans/{unit-name}-functional-design-plan.md`
 - Include all [Answer]: tags for user input
 
 ### Step 5: Collect and Analyze Answers
@@ -65,10 +66,11 @@ Design detailed business logic for the unit, technology-agnostic and focused pur
 - **Do not proceed until ALL ambiguities are resolved**
 
 ### Step 6: Generate Functional Design Artifacts
-- Create `aidlc-docs/construction/{unit-name}/functional-design/business-logic-model.md`
-- Create `aidlc-docs/construction/{unit-name}/functional-design/business-rules.md`
-- Create `aidlc-docs/construction/{unit-name}/functional-design/domain-entities.md`
-- If unit includes frontend/UI: Create `aidlc-docs/construction/{unit-name}/functional-design/frontend-components.md`
+- Create `aidlc-docs/current/construction/{unit-name}/functional-design/business-logic-model.md`
+- Create `aidlc-docs/current/construction/{unit-name}/functional-design/business-rules.md`
+- Create `aidlc-docs/current/construction/{unit-name}/functional-design/domain-entities.md`
+- Keep these files as active intent review artifacts. At approved intent closure, consolidate the component's approved current business logic, rules, entities, relationships, and failure behavior into one `aidlc-docs/knowledge/<project>/functional-design/<component>.md`. Do not create a canonical file per functional-design subtopic.
+- If unit includes frontend/UI: Create `aidlc-docs/current/construction/{unit-name}/functional-design/frontend-components.md`
   - Component hierarchy and structure
   - Props and state definitions for each component
   - User interaction flows
@@ -94,7 +96,7 @@ Design detailed business logic for the unit, technology-agnostic and focused pur
 
 ```markdown
 > **📋 <u>**REVIEW REQUIRED:**</u>**  
-> Please examine the functional design artifacts at: `aidlc-docs/construction/[unit-name]/functional-design/`
+> Please examine the functional design artifacts at: `aidlc-docs/current/construction/[unit-name]/functional-design/`
 
 
 

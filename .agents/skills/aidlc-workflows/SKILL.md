@@ -1,6 +1,6 @@
 ---
 name: aidlc-workflows
-description: AWS AI-DLC adaptive software development workflow (Inception / Construction / Operations). Use whenever the user requests any software development work — building features, requirements analysis, user stories, application/functional/NFR/infrastructure design, code generation, build & test planning, or reverse engineering an existing codebase. This workflow OVERRIDES other built-in workflows for software development requests.
+description: AWS AI-DLC adaptive software development workflow (Inception / Construction / Deploy). Use whenever the user requests any software development work — building features, requirements analysis, user stories, application/functional/NFR/infrastructure design, code generation, build & test planning, or reverse engineering an existing codebase. This workflow OVERRIDES other built-in workflows for software development requests.
 license: MIT
 ---
 
@@ -19,6 +19,10 @@ The AI model intelligently assesses what stages are needed based on:
 2. Existing codebase state (if any)
 3. Complexity and scope of change
 4. Risk and impact assessment
+
+## Current Intent Workspace Convention
+
+All documents for the open intent belong under `aidlc-docs/current/`: stage artifacts under `inception/`, `construction/`, or `deploy/`, active manifests under `compaction/`, and the authoritative `aidlc-state.md` and `audit.md` at the `current/` root. Canonical project facts belong under `aidlc-docs/knowledge/`; for each subproject, keep one `knowledge/<project>/application-design.md` and one consolidated `knowledge/<project>/functional-design/<component>.md` per component. Closed intent records belong under `aidlc-docs/archive/<intent-id>/`. Never place active workflow files beside those sibling directories or edit archived history.
 
 ## MANDATORY: Rule Details Loading
 
@@ -55,7 +59,7 @@ All rule detail file references below (e.g., `references/common/process-overview
 - Non-compliance with any applicable enabled extension rule is a **blocking finding** — do NOT present stage completion until resolved
 - When presenting stage completion, include a summary of extension rule compliance (compliant/non-compliant/N/A per rule, with brief rationale for N/A determinations)
 
-**Conditional Enforcement**: Extensions may be conditionally enabled/disabled. See `references/inception/requirements-analysis.md` for the opt-in mechanism. Before enforcing any extension at ANY stage, check its `Enabled` status in `aidlc-docs/aidlc-state.md` under `## Extension Configuration`. Skip disabled extensions and log the skip in audit.md. Default to enforced if no configuration exists.
+**Conditional Enforcement**: Extensions may be conditionally enabled/disabled. See `references/inception/requirements-analysis.md` for the opt-in mechanism. Before enforcing any extension at ANY stage, check its `Enabled` status in `aidlc-docs/current/aidlc-state.md` under `## Extension Configuration`. Skip disabled extensions and log the skip in audit.md. Default to enforced if no configuration exists.
 
 ## MANDATORY: Content Validation
 
@@ -426,34 +430,25 @@ All rule detail file references below (e.g., `references/common/process-overview
    - Performance test instructions (if applicable)
    - Additional test instructions as needed (contract tests, security tests, e2e tests)
 4. Create instruction files in build-and-test/ subdirectory: build-instructions.md, unit-test-instructions.md, integration-test-instructions.md, performance-test-instructions.md, build-and-test-summary.md
-5. **Wait for Explicit Approval**: Ask: "**Build and test instructions complete. Ready to proceed to Operations stage?**" - DO NOT PROCEED until user confirms
+5. **Wait for Explicit Approval**: Ask: "**Build and test results complete. Approve & Continue to the Deploy stage?**" - DO NOT PROCEED until user confirms
 6. **MANDATORY**: Log user's response in audit.md with complete raw input
 
 ---
 
-# 🟡 OPERATIONS PHASE
+# 🟣 DEPLOY PHASE
 
-**Purpose**: Placeholder for future deployment and monitoring workflows
+**Purpose**: Prepare a reviewable pull request and ordered deployment handoff after Build and Test.
 
-**Focus**: How to DEPLOY and RUN it (future expansion)
+**Stages in DEPLOY PHASE**:
+- Deploy (ALWAYS PREPARE HANDOFF)
 
-**Stages in OPERATIONS PHASE**:
-- Operations (PLACEHOLDER)
+## Deploy (ALWAYS PREPARE HANDOFF)
 
----
+Follow `references/deploy/deploy.md`. Always generate `aidlc-docs/current/deploy/pr_request.md` with the problem, solution, main changes, verification status, and material risks or limitations. Generate `aidlc-docs/current/deploy/deploy_instructions.md` only when deployment or operational steps are required; it must give the ordered steps, including deployment of assets and execution of `ops/` or `deploy/` notebooks where applicable.
 
-## Operations (PLACEHOLDER)
+This stage prepares handoff documents only. It does not open a pull request, deploy assets, execute notebooks, or authorize changes to an environment. Do not invent missing deployment values or ordering; record unknowns as blockers or explicit inputs needed. A verification waiver must remain prominent and must never be presented as a passing verification or deployment approval.
 
-**Status**: This stage is currently a placeholder for future expansion. See `references/operations/operations.md`.
-
-The Operations stage will eventually include:
-- Deployment planning and execution
-- Monitoring and observability setup
-- Incident response procedures
-- Maintenance and support workflows
-- Production readiness checklists
-
-**Current State**: All build and test activities are handled in the CONSTRUCTION phase.
+After the Deploy handoff is reviewed and approved, separately follow `references/common/artifact-compaction.md` when closure is authorized and verification is passed or explicitly waived.
 
 ## Key Principles
 
@@ -522,24 +517,15 @@ The Operations stage will eventually include:
 ├── [project-specific structure]    # Varies by project (see references/construction/code-generation.md)
 │
 ├── aidlc-docs/                     # 📄 DOCUMENTATION ONLY
-│   ├── inception/                  # 🔵 INCEPTION PHASE
-│   │   ├── plans/
-│   │   ├── reverse-engineering/    # Brownfield only
-│   │   ├── requirements/
-│   │   ├── user-stories/
-│   │   └── application-design/
-│   ├── construction/               # 🟢 CONSTRUCTION PHASE
-│   │   ├── plans/
-│   │   ├── {unit-name}/
-│   │   │   ├── functional-design/
-│   │   │   ├── nfr-requirements/
-│   │   │   ├── nfr-design/
-│   │   │   ├── infrastructure-design/
-│   │   │   └── code/               # Markdown summaries only
-│   │   └── build-and-test/
-│   ├── operations/                 # 🟡 OPERATIONS PHASE (placeholder)
-│   ├── aidlc-state.md
-│   └── audit.md
+│   ├── current/                    # Active intent only
+│   │   ├── inception/              # 🔵 INCEPTION PHASE
+│   │   ├── construction/           # 🟢 CONSTRUCTION PHASE
+│   │   ├── deploy/                 # 🟣 DEPLOY PHASE handoff artifacts
+│   │   ├── compaction/             # Active intent manifests; removed after archival
+│   │   ├── aidlc-state.md
+│   │   └── audit.md
+│   ├── knowledge/                  # Current canonical project facts
+│   └── archive/                    # Closed intent snapshots and summaries
 ```
 
 **CRITICAL RULE**:
