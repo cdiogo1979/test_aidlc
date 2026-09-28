@@ -42,11 +42,11 @@ Concrete runtime contracts, record semantics, and business rules are maintained 
 - Use bronze Delta and CDF as the durable inter-component contract.
 - Keep separate checkpoints for Kafka ingestion and bronze CDF consumption. A positive layer lookback deliberately resets that layer's checkpoint and replays from its cutoff; zero continues from its checkpoint.
 - Silver uses Delta `VARIANT` for extensible JSON properties and requires Databricks Runtime 15.4 LTS or later.
-- The current prod target still requires deployment-provided schedule/timezone, compute, run-as identity, and retry settings. See `p1-databricks-workload.md` for configuration and verification limits.
+- The current prod target still requires deployment-provided schedule/timezone, compute, run-as identity, and retry settings. Deployment-specific values are defined in `configs/{environment}.yaml` and `jobs/P1/`; do not duplicate them in separate project-level knowledge summaries.
 
 ## Current verification status
 
-P1 runtime behavior has not been verified in a Databricks environment. The workload knowledge document and archived intent summaries describe accepted verification limitations. This architecture records the approved design and is not evidence of successful deployment or runtime execution.
+P1 runtime behavior has not been verified in a Databricks environment. Accepted verification limitations are preserved in the relevant archived intent records. This architecture records the approved design and is not evidence of successful deployment or runtime execution.
 
 ## Historical sources
 

@@ -43,17 +43,14 @@ Create `aidlc-docs/current/construction/build-and-test/build-instructions.md`:
 \`\`\`
 
 ### 2. Run Repository Python Code Analysis (When Applicable)
-For this repository's Python project, Build & Test must run the same code analysis checks and scope as `cicd/Jenkinsfile`. Install the pinned development tools, then run the configured tools from the repository root so each reads its settings from `pyproject.toml`:
+For this repository's Python project, Build & Test must invoke the same code-quality script and scope as `cicd/Jenkinsfile`. Install the pinned development tools, then run the script from the repository root:
 
 ```bash
 python3 -m pip install -r requirements-dev.txt
-ruff check notebooks scripts src tests
-black --check notebooks scripts src tests
-flake8 notebooks scripts src tests
-bandit -c pyproject.toml -r notebooks scripts src tests
+scripts/code_quality.sh all
 ```
 
-Ruff and Black read their configuration from `pyproject.toml`; Flake8 reads `[tool.flake8]` through the installed Flake8-pyproject plugin; Bandit reads `[tool.bandit]` via `-c pyproject.toml`. Keep Jenkins and AI-DLC Build & Test commands and folder scope aligned when either changes. These are read-only checks; do not format unrelated files automatically. Record each command, scope, and result in the Build & Test summary. If a folder is absent in another project, use only applicable project folders and explain the adjustment.
+The script checks `notebooks`, `scripts`, `src`, and `tests`: Ruff and Black (`--check`), Flake8, and Bandit. The tools read configuration from `pyproject.toml`; Flake8 uses the installed Flake8-pyproject plugin and Bandit receives `-c pyproject.toml`. Jenkins invokes the same script modes in parallel (`lint`, `flake8`, and `bandit`). Keep the script as the single source of check commands and target folders. These checks are read-only. Record the script invocation, scope, and result in the Build & Test summary. For projects without this script, use their applicable configured checks and document the scope.
 
 ### 3. Configure Environment
 \`\`\`bash

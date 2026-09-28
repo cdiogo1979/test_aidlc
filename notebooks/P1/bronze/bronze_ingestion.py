@@ -105,6 +105,7 @@ BRONZE_COLUMNS_SQL = """
 # COMMAND ----------
 # Additional Functions
 
+
 def _jaas_quote(value: str) -> str:
     """Escape a value for use in a quoted Kafka JAAS option.
 
@@ -360,6 +361,7 @@ def run_bronze_ingestion(
 
 # COMMAND ----------
 # Main Execution
+
 
 if __name__ == "__main__":
     run_bronze_ingestion(

@@ -43,20 +43,17 @@ pipeline {
             parallel {
                 stage('Lint and Formatting') {
                     steps {
-                        sh '''
-                            "${VIRTUAL_ENV}/bin/ruff" check notebooks scripts src tests
-                            "${VIRTUAL_ENV}/bin/black" --check notebooks scripts src tests
-                        '''
+                        sh 'PATH="${VIRTUAL_ENV}/bin:$PATH" scripts/code_quality.sh lint'
                     }
                 }
                 stage('Flake8 Style Check') {
                     steps {
-                        sh '"${VIRTUAL_ENV}/bin/flake8" notebooks scripts src tests'
+                        sh 'PATH="${VIRTUAL_ENV}/bin:$PATH" scripts/code_quality.sh flake8'
                     }
                 }
                 stage('Bandit Security Scan') {
                     steps {
-                        sh '"${VIRTUAL_ENV}/bin/bandit" -c pyproject.toml -r notebooks scripts src tests'
+                        sh 'PATH="${VIRTUAL_ENV}/bin:$PATH" scripts/code_quality.sh bandit'
                     }
                 }
             }
