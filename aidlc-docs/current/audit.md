@@ -49,3 +49,8 @@ The preceding workflow knowledge intent is closed and preserved at `aidlc-docs/a
 ## Bandit B102 Finding
 **User Input (raw)**: "bandit found this issue: B102:exec_used at `tests/test_p2_pipeline_properties.py:28:4`"
 **Result**: Added a narrow `# nosec B102` on the single AST helper-loader call. The test compiles only the selected helper definitions from trusted repository source; the suppression does not disable B102 globally.
+
+## Jenkins Script Checkout Finding
+**User Input (raw)**: "jenkins returned this: `scripts/code_quality.sh: not found`"
+**Finding**: The script existed locally but was ignored by the repository-wide `*` rule, so Git did not include it in a Jenkins checkout.
+**Change**: Updated `.gitignore` to allow only `scripts/code_quality.sh` through while preserving the broad ignore behavior for other untracked files.
