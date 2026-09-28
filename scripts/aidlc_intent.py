@@ -380,10 +380,12 @@ def compact(root: Path, intent_id: str, manifest: dict[str, Any], dry_run: bool 
         for item in manifest["canonical_updates"]:
             destination = _inside(root, _safe_relative(item["path"]))
             _atomic_write(destination, item["content"].encode("utf-8"))
-        pointer = (f"# Audit Archive Pointer\n\nThe complete audit history through intent `{intent_id}` is preserved at "
-                  f"`{_archive_path(intent_id)}/full-artifacts/{AUDIT_FILE}`.\n\n"
-                  f"## Intent Closure: {intent_id}\n**Archive**: `{_archive_path(intent_id)}`\n"
-                  f"**Summary**: `{_archive_path(intent_id)}/intent-summary.md`\n")
+        pointer = (
+            f"# Audit Archive Pointer\n\nThe complete audit history through intent `{intent_id}` is preserved at "
+            f"`{_archive_path(intent_id)}/full-artifacts/{AUDIT_FILE}`.\n\n"
+            f"## Intent Closure: {intent_id}\n**Archive**: `{_archive_path(intent_id)}`\n"
+            f"**Summary**: `{_archive_path(intent_id)}/intent-summary.md`\n"
+        )
         _atomic_write(root / AUDIT_FILE, pointer.encode("utf-8"))
         for value in manifest["cleanup_paths"]:
             path = _inside(root, _safe_relative(value))

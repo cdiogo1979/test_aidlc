@@ -101,6 +101,7 @@ VARIANT_RUNTIME_REQUIREMENT = "Databricks Runtime 15.4 LTS or later"
 # COMMAND ----------
 # Additional Functions
 
+
 def _reset_checkpoint(checkpoint_uri: str) -> None:
     """Remove this notebook's existing checkpoint before an explicit replay.
 
@@ -174,10 +175,7 @@ def _ensure_output_tables() -> None:
             (field for field in silver_schema.fields if field.name == "attributes"),
             None,
         )
-        if (
-            attributes_field is None
-            or attributes_field.dataType.simpleString().lower() != "variant"
-        ):
+        if attributes_field is None or attributes_field.dataType.simpleString().lower() != "variant":
             raise RuntimeError(
                 f"Silver table {SILVER_TABLE} must have an `attributes VARIANT` column. "
                 f"Use {VARIANT_RUNTIME_REQUIREMENT} and migrate the table schema if needed."
@@ -441,7 +439,7 @@ def _process_cdf_batch(
     if unexpected_types:
         raise ValueError(
             "U2 expects insert-only bronze CDF records; found unsupported change types: "
-            + ", ".join(sorted(str(change_type) for change_type in unexpected_types))
+            f"{', '.join(sorted(str(change_type) for change_type in unexpected_types))}"
         )
 
     inserts = (
@@ -546,6 +544,7 @@ def run_silver_processing(
 
 # COMMAND ----------
 # Main Execution
+
 
 if __name__ == "__main__":
     run_silver_processing(

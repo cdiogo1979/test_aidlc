@@ -23,7 +23,7 @@
 ### 1.4 Load Canonical Knowledge (brownfield or existing project)
 - Read the relevant `aidlc-docs/knowledge/<project>/application-design.md`.
 - Read the canonical functional-design documents for existing components implicated by the requirements; use component inventory and dependency docs where available to identify them.
-- Read relevant workload/domain indexes that link canonical designs.
+- Read existing workload/domain indexes that link canonical designs, if present. These are inputs only; do not create a separate project-level summary by default. Keep durable architecture in the per-project application design and component behavior in per-component functional designs. Propose an additional canonical knowledge area only when the intent establishes a distinct durable concern and the execution-plan inventory justifies it.
 - Treat these documents as the approved baseline, while resolving conflicts in favor of approved current requirements. Do not defer this discovery to Construction.
 
 ## Step 2: Detailed Scope and Impact Analysis

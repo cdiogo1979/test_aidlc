@@ -25,7 +25,8 @@ def _load_p2_helpers() -> tuple[Callable[..., str], Callable[[str], str]]:
         raise ValueError("Expected P2 topic and JAAS helpers were not found.")
     module = ast.Module(body=functions, type_ignores=[])
     namespace: dict[str, object] = {"Any": Any}
-    exec(
+    # This executes only the two selected helpers parsed from trusted repository source.
+    exec(  # nosec B102
         compile(ast.fix_missing_locations(module), str(notebook_path), "exec"),
         namespace,
     )
