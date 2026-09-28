@@ -1,36 +1,71 @@
 pipeline {
-    agent any
+    agent {
+        docker {
+            image 'python:3.10'
+        }
+    }
+    environment {
+        PYTHON_VERSION = "3.10"
+        VIRTUAL_ENV = "venv"
+        REGISTRY = "registry.example.com"
+        APP_NAME = "test_aidlc"
+    }
 
     options {
         skipDefaultCheckout(true)
     }
 
     stages {
-        stage('Checkout master') {
+        stage('Checkout source') {
             steps {
-                checkout([
-                    $class: 'GitSCM',
-                    branches: [[name: '*/master']],
-                    userRemoteConfigs: scm.userRemoteConfigs
-                ])
+                checkout scm
             }
         }
 
-        stage('Install lint dependencies') {
+        stage('Setup Environment') {
             steps {
                 sh '''
-                    python3 -m venv .venv
-                    . .venv/bin/activate
-                    python -m pip install --disable-pip-version-check -r requirements-dev.txt
+                    python -m venv "${VIRTUAL_ENV}"
+                    "${VIRTUAL_ENV}/bin/python" -m pip install --upgrade pip setuptools wheel
                 '''
             }
         }
 
-        stage('Lint') {
+        stage('Install Dependencies') {
             steps {
                 sh '''
-                    . .venv/bin/activate
-                    ruff check .
+                    "${VIRTUAL_ENV}/bin/python" -m pip install -r requirements-dev.txt
+                '''
+            }
+        }
+
+        stage('Code Analysis') {
+            parallel {
+                stage('Lint and Formatting') {
+                    steps {
+                        sh '''
+                            "${VIRTUAL_ENV}/bin/ruff" check notebooks scripts src tests
+                            "${VIRTUAL_ENV}/bin/black" --check notebooks scripts src tests
+                        '''
+                    }
+                }
+                stage('Flake8 Style Check') {
+                    steps {
+                        sh '"${VIRTUAL_ENV}/bin/flake8" notebooks scripts src tests'
+                    }
+                }
+                stage('Bandit Security Scan') {
+                    steps {
+                        sh '"${VIRTUAL_ENV}/bin/bandit" -c pyproject.toml -r notebooks scripts src tests'
+                    }
+                }
+            }
+        }
+
+        stage('Test') {
+            steps {
+                sh '''
+                    "${VIRTUAL_ENV}/bin/python" -m unittest discover -s tests
                 '''
             }
         }

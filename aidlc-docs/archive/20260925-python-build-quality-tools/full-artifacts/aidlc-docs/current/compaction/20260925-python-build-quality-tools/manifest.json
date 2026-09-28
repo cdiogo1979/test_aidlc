@@ -1,0 +1,62 @@
+{
+  "intent_id": "20260925-python-build-quality-tools",
+  "name": "Python build quality and canonical design knowledge",
+  "objective": "Add reproducible Python formatting and linting guidance and establish canonical subproject and component design knowledge conventions.",
+  "date": "2026-09-27",
+  "scope": "Developer workflow tooling and documentation, Black/Ruff configuration, AI-DLC guidance, and curated P1 canonical design summaries; no Python or Databricks runtime execution.",
+  "workstreams": [
+    "Python quality tooling",
+    "AI-DLC workflow guidance",
+    "P1 canonical design knowledge"
+  ],
+  "verification": {
+    "status": "waived",
+    "user_accepted": true,
+    "details": "Explicitly accepted by the user: Black, Ruff, Python tests, and Databricks runtime validation were not run. Only static review was performed; verification is not passed."
+  },
+  "artifact_inventory_complete": true,
+  "summary": {
+    "major_requirements": [
+      "Declare reproducible Black and Ruff developer tools and configure them for the repository.",
+      "Document formatter and linter checks in the AI-DLC Build & Test workflow.",
+      "Maintain one canonical application-design document per subproject and consolidated functional-design documents per component.",
+      "Seed P1 canonical design summaries from approved prior artifacts without modifying historical archives."
+    ],
+    "design_decisions": [
+      "Canonical application design is maintained under aidlc-docs/knowledge/<project>/.",
+      "Canonical functional design is maintained per component under aidlc-docs/knowledge/<project>/functional-design/.",
+      "Keep active workflow artifacts under aidlc-docs/current and preserve historical records in the intent archive."
+    ],
+    "implementation_decisions": [
+      "Black and Ruff configuration and pinned development dependencies are stored in pyproject.toml and requirements-dev.txt.",
+      "AI-DLC guidance and repository conventions are documented in the workflow skill and AGENTS.md.",
+      "P1 canonical design documents were curated from approved historical artifacts."
+    ],
+    "deviations": [
+      "No formatter, linter, Python test, or Databricks runtime validation was run; the user accepted this explicit verification waiver."
+    ],
+    "superseded_decisions": []
+  },
+  "canonical_updates": [],
+  "artifacts": [
+    "aidlc-docs/current/inception",
+    "aidlc-docs/current/deploy",
+    "aidlc-docs/current/compaction/20260925-python-build-quality-tools/manifest.json",
+    ".agents/skills/aidlc-workflows",
+    "AGENTS.md",
+    "README.md",
+    "pyproject.toml",
+    "requirements-dev.txt",
+    "aidlc-docs/knowledge/P1",
+    "aidlc-docs/knowledge/aidlc-intent-lifecycle.md",
+    "aidlc-docs/knowledge/p1-databricks-workload.md",
+    "scripts/aidlc_intent.py",
+    "tests/test_aidlc_intent.py"
+  ],
+  "cleanup_paths": [
+    "aidlc-docs/current/inception",
+    "aidlc-docs/current/construction",
+    "aidlc-docs/current/deploy",
+    "aidlc-docs/current/compaction/20260925-python-build-quality-tools"
+  ]
+}

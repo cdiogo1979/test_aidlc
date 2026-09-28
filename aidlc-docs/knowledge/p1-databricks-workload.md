@@ -10,7 +10,6 @@ P1 ingests JSON events from Kafka into bronze Delta, quarantines malformed messa
 - [U1 Bronze Ingestion functional design](P1/functional-design/U1-bronze-ingestion.md)
 - [U2 Silver Processing and Quarantine functional design](P1/functional-design/U2-silver-processing-and-quarantine.md)
 - [U3 P1 Integration functional design](P1/functional-design/U3-p1-integration.md)
-- [U4 P1 Layer Timestamp Metadata functional design](P1/functional-design/U4-p1-layer-timestamp-metadata.md)
 
 These are the canonical approved design summaries. Intent-specific source artifacts remain in their immutable archives.
 
@@ -26,9 +25,9 @@ These are the canonical approved design summaries. Intent-specific source artifa
 
 ## Layer processing timestamps
 
-The timestamp-columns intent adds `bronze_ingestion_timestamp TIMESTAMP` to bronze and `silver_processing_timestamp TIMESTAMP` to silver. They are distinct UTC processing instants; Kafka `source_timestamp` remains source event time. Bronze records the timestamp on first insertion; silver records it on an accepted current-state insert or winning update. Duplicate or no-op replay does not refresh a committed value.
+U1 owns `bronze_ingestion_timestamp TIMESTAMP`, assigned as a UTC processing instant on first insertion; duplicate replay does not refresh a committed value. U2 owns `silver_processing_timestamp TIMESTAMP`, assigned on an accepted current-state insert or winning update; losing candidates and no-op replay do not refresh a committed value. Kafka `source_timestamp` remains source event time, distinct from both processing timestamps.
 
-The implementation adds missing nullable columns before writes and leaves historical records NULL. `src/delta_schema.py` contains the shared schema migration/type-validation helper. No timestamp was backfilled and no live table was migrated.
+Each owning component ensures its timestamp column exists as nullable `TIMESTAMP` before writes and leaves historical records NULL. `src/delta_schema.py` contains the shared schema migration/type-validation helper. No timestamp was backfilled and no live table was migrated. These responsibilities do not add a separate component or job task; U3's orchestration remains unchanged.
 
 ## Configuration and security
 

@@ -2,7 +2,7 @@
 
 ## Purpose and boundary
 
-Orchestrate the P1 bronze and silver workload as one daily Databricks job. U3 owns task dependency, environment/parameter propagation, and overall run outcome. U1 owns ingestion; U2 owns silver processing and quarantine.
+Orchestrate the P1 bronze and silver workload as one daily Databricks job. U3 owns task dependency, environment/parameter propagation, and overall run outcome. U1 owns ingestion and `bronze_ingestion_timestamp`; U2 owns silver processing, quarantine, and `silver_processing_timestamp`. U3 owns orchestration only and does not write either processing timestamp.
 
 ## Inputs and outputs
 
@@ -26,6 +26,7 @@ Orchestrate the P1 bronze and silver workload as one daily Databricks job. U3 ow
 - Normal runs do not reset checkpoints; only a positive layer lookback requests that layer's replay/reset behavior.
 - Daily schedule time, timezone, compute, service principal, retry policy, and other environment deployment parameters are supplied by the deployment target.
 - Gold transformations are outside the current job scope.
+- Timestamp columns are maintained inside the U1/U2 writes; U3's task graph, ordering, parameters, and success conditions remain unchanged by their addition. No separate timestamp task is part of the job.
 
 ## Domain entities
 
@@ -35,7 +36,7 @@ One invocation with a trigger, environment, task outcomes, and overall outcome. 
 
 ### Bronze and silver tasks
 
-The bronze task owns its Kafka checkpoint and bronze write. The dependent silver task owns its CDF checkpoint and silver/quarantine writes. Bronze Delta is their persisted data contract.
+The bronze task owns its Kafka checkpoint, bronze write, and first-insert processing timestamp. The dependent silver task owns its CDF checkpoint, silver/quarantine writes, and accepted-current-state processing timestamp. Bronze Delta is their persisted data contract. These existing tasks retain their behavior and sequence; timestamps do not add a task.
 
 ## Failure and recovery
 

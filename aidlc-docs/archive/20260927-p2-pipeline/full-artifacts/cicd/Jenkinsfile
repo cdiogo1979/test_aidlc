@@ -1,0 +1,72 @@
+pipeline {
+    agent {
+        docker {
+            image 'python:3.10'
+            args '-u root:root'
+            label 'docker-enabled'
+        }
+    }
+    environment {
+        PYTHON_VERSION = "3.10"
+        VIRTUAL_ENV = "venv"
+        REGISTRY = "registry.example.com"
+        APP_NAME = "test_aidlc"
+    }
+
+    options {
+        skipDefaultCheckout(true)
+    }
+
+    stages {
+        stage('Checkout source') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Setup Environment') {
+            steps {
+                sh '''
+                    python -m venv "${VIRTUAL_ENV}"
+                    "${VIRTUAL_ENV}/bin/python" -m pip install --upgrade pip setuptools wheel
+                '''
+            }
+        }
+
+        stage('Install Dependencies') {
+            steps {
+                sh '''
+                    "${VIRTUAL_ENV}/bin/python" -m pip install -r requirements-dev.txt
+                '''
+            }
+        }
+
+        stage('Code Analysis') {
+            parallel {
+                stage('Ruff Lint') {
+                    steps {
+                        sh '"${VIRTUAL_ENV}/bin/ruff" check .'
+                    }
+                }
+                stage('Flake8 Style Check') {
+                    steps {
+                        sh '"${VIRTUAL_ENV}/bin/flake8" --max-line-length=200 --extend-ignore=E402 notebooks/P2 tests'
+                    }
+                }
+                stage('Bandit Security Scan') {
+                    steps {
+                        sh '"${VIRTUAL_ENV}/bin/bandit" -r notebooks/P2'
+                    }
+                }
+            }
+        }
+
+        stage('Test') {
+            steps {
+                sh '''
+                    "${VIRTUAL_ENV}/bin/python" -m unittest discover -s tests
+                '''
+            }
+        }
+    }
+}

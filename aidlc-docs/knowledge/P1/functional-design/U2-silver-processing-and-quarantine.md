@@ -49,4 +49,4 @@ Represents a malformed or invalid bronze record and retains raw payload, source 
 ## Historical sources
 
 - `aidlc-docs/archive/20260924-p1-databricks-workload/full-artifacts/aidlc-docs/construction/u2-silver-processing-and-quarantine/functional-design/`
-- `aidlc-docs/archive/20260924-p1-layer-timestamp-columns/full-artifacts/aidlc-docs/construction/u4-p1-layer-timestamp-metadata/functional-design/` (timestamp semantics)
+- Timestamp ownership and semantics were consolidated from the archived timestamp intent; historical source: `aidlc-docs/archive/20260924-p1-layer-timestamp-columns/full-artifacts/aidlc-docs/construction/u4-p1-layer-timestamp-metadata/functional-design/`.
